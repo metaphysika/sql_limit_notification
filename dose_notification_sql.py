@@ -7,8 +7,6 @@ import py
 import subprocess
 
 
-
-
 # path for local database
 fileDb = py.path.local(r"C:\Users\clahn\AppData\Local\Continuum\anaconda3"
                        "\envs\env2.7\Lib\site-packages\openrem"
@@ -18,6 +16,8 @@ fileDb = py.path.local(r"C:\Users\clahn\AppData\Local\Continuum\anaconda3"
 db = sqlite3.connect(fileDb.strpath)
 
 # function that sends email
+
+
 def send_notification():
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
@@ -30,6 +30,8 @@ def send_notification():
     mail.send
 
 # function to open outlook if not already open
+
+
 def open_outlook():
     try:
         subprocess.call(['C:\Program Files\Microsoft Office\Office16\Outlook.exe'])
@@ -52,6 +54,7 @@ def check_outlook():
         open_outlook()
         send_notification()
 
+
 # selects data from database.  LIMIT will  limit results to specified number.
 queries = """
 SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
@@ -65,7 +68,7 @@ df['protocol'] = df['protocol'].astype(str)
 
 # TODO: write a function that takes the uid and finds exam info: acc, location, etc.
 
-
+'''
 # function creates a mask dataframe of single study type.
 # looks for ctdi values above a set threshold.
 # appends outlier data to a file and emails the physics email with study data.
@@ -99,9 +102,50 @@ def dose_limit(exam, limit):
             wb.close()
             # calls the function that sends the email with these variables data.
             check_outlook()
+'''
 
 
+class ctdiLimit:
+    def __init__(self, protocol, limit):
+        self.protocol = protocol
+        self.limit = limit
+
+    def dose_limit(self):
+        df2 = df[df['protocol'].str.contains(self.protocol, case=False)]
+
+        for idx, row in df2.iterrows():
+            if row.at['ctdi'] > self.limit:
+                # list for adding data to spreadsheet for tracking notifications.
+                nt = []
+                # TODO: change to physics@sanfordhealth.org
+                emailname = "christopher.lahn@sanfordhealth.org"
+                protocol = str(row.at["protocol"])
+                nt.append(protocol)
+                uid = str(row.at['uid'])
+                nt.append(uid)
+                ctdi = str(row.at['ctdi'])
+                nt.append(ctdi)
+                # write the notifications to a file.
+                # TODO move file to a permanent place
+                wb = openpyxl.load_workbook(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
+                sheet = wb['Sheet1']
+                sheet.append(nt)
+                wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
+                wb.close()
+                # calls the function that sends the email with these variables data.
+                check_outlook()
+
+
+exam = ctdiLimit('cta', 30)
+exam.dose_limit()
+
+#ctdiLimit.dose_limit('cta', 30)
+#ctdiLimit.dose_limit('aaa', 30)
+#ctdiLimit.dose_limit('l-spine', 30)
+
+'''
 dose_limit('cta', 30)
 dose_limit('aaa', 30)
 dose_limit('l-spine', 30)
+'''
 db.close()
