@@ -98,13 +98,18 @@ def dose_limit(exam, limit):
             # write the notifications to a file.
             # TODO move file to a permanent place
             wb = openpyxl.load_workbook(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
-            # TODO: check if UID is already in file.  If so, pass.  If not, append and send notification.
             sheet = wb['Sheet1']
-            sheet.append(nt)
-            wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
-            wb.close()
-            # calls the function that sends the email with these variables data.
-            check_outlook()
+            # TODO: check if UID is already in file.  If so, pass.  If not, append and send notification.
+            for cell in sheet['B']:
+                if uid in cell.value:
+                    sheet.append(nt)
+                    wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
+                    wb.close()
+                    # calls the function that sends the email with these variables data.
+                    check_outlook()
+                else:
+                    wb.close()
+                    continue
 
 
 dose_limit('cta', 30)
