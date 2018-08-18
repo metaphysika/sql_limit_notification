@@ -6,7 +6,7 @@ import psutil
 import py
 import subprocess
 
-
+# This is a test of the github repo on home computer
 
 
 # path for local database
@@ -18,6 +18,8 @@ fileDb = py.path.local(r"C:\Users\clahn\AppData\Local\Continuum\anaconda3"
 db = sqlite3.connect(fileDb.strpath)
 
 # function that sends email
+
+
 def send_notification():
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
@@ -30,6 +32,8 @@ def send_notification():
     mail.send
 
 # function to open outlook if not already open
+
+
 def open_outlook():
     try:
         subprocess.call(['C:\Program Files\Microsoft Office\Office16\Outlook.exe'])
@@ -51,6 +55,7 @@ def check_outlook():
     else:
         open_outlook()
         send_notification()
+
 
 # selects data from database.  LIMIT will  limit results to specified number.
 queries = """
@@ -93,6 +98,7 @@ def dose_limit(exam, limit):
             # write the notifications to a file.
             # TODO move file to a permanent place
             wb = openpyxl.load_workbook(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
+            # TODO: check if UID is already in file.  If so, pass.  If not, append and send notification.
             sheet = wb['Sheet1']
             sheet.append(nt)
             wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
