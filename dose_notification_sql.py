@@ -8,6 +8,24 @@ import subprocess
 
 # This is a test of the github repo on home computer
 
+# Check if outlook is open.  If not, open it.
+for item in psutil.pids():
+    for item in psutil.pids():
+        p = psutil.Process(item)
+        flag = (p.name() == "OUTLOOK.EXE")
+        if flag:
+            break
+
+    if flag:
+        pass
+    else:
+        try:
+            os.startfile("outlook")
+            #subprocess.call(['C:\Program Files\Microsoft Office\Office16\Outlook.exe'])
+            #os.system("C:\Program Files\Microsoft Office\Office16\Outlook.exe")
+        except:
+            print("Outlook didn't open successfully")
+
 
 # path for local database
 fileDb = py.path.local(r"C:\Users\clahn\AppData\Local\Continuum\anaconda3"
@@ -31,30 +49,6 @@ def send_notification():
                  + protocol + "\r\n \r\nUID: " + uid + "\r\n \r\nCTDI: " + ctdi)
     mail.send
 
-# function to open outlook if not already open
-
-
-def open_outlook():
-    try:
-        subprocess.call(['C:\Program Files\Microsoft Office\Office16\Outlook.exe'])
-        os.system("C:\Program Files\Microsoft Office\Office16\Outlook.exe")
-    except:
-        print("Outlook didn't open successfully")
-
-
-# Checking if outlook is already opened. If not, open Outlook.exe and send email
-def check_outlook():
-    for item in psutil.pids():
-        p = psutil.Process(item)
-        flag = (p.name() == "OUTLOOK.EXE")
-        if flag:
-            break
-
-    if flag:
-        send_notification()
-    else:
-        open_outlook()
-        send_notification()
 
 
 # selects data from database.  LIMIT will  limit results to specified number.
@@ -99,17 +93,22 @@ def dose_limit(exam, limit):
             # TODO move file to a permanent place
             wb = openpyxl.load_workbook(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
             sheet = wb['Sheet1']
-            # TODO: check if UID is already in file.  If so, pass.  If not, append and send notification.
-            for cell in sheet['B']:
-                if uid in cell.value:
-                    sheet.append(nt)
-                    wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
-                    wb.close()
-                    # calls the function that sends the email with these variables data.
-                    check_outlook()
-                else:
-                    wb.close()
-                    continue
+            # check if UID is already in file.  If so, pass.  If not, append and send notification.
+            oldUid = []
+            for col in sheet['B']:
+                oldUid.append(col.value)
+            if uid in oldUid:
+                pass
+            else:
+                sheet.append(nt)
+                wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
+                wb.close()
+                # calls the function that sends the email with these variables data.
+                send_notification()
+                wb.close()
+                continue
+
+
 
 
 dose_limit('cta', 30)
