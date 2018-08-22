@@ -6,7 +6,9 @@ import psutil
 import py
 import subprocess
 
-# This is a test of the github repo on home computer
+# TODO: add part to script that will make a copy of databse file on my computer.
+# This script will then perform operations on that file.
+# W:\SHARE8 Physics\Software\python\data\openrem\openrem.db
 
 # Check if outlook is open.  If not, open it.
 for item in psutil.pids():
@@ -46,7 +48,8 @@ def send_notification():
     mail.Subject = "Dose Notification Trigger"
     mail.body = ("Hello, \r\n \r\nThis is an automated message.  No reply is necessary."
                  "  \r\n \r\nAn exam was performed that exceeded our dose Notification limits.  \r\n \r\nExam: "
-                 + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi + "\r\n \r\nStudy Date: " +
+                 + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi +
+                 "\r\n \r\nNotification Limit: " + notification_limit + "\r\n \r\nStudy Date: " +
                  studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
     mail.send
 
@@ -55,7 +58,7 @@ def send_notification():
 # selects data from database.  LIMIT will  limit results to specified number.
 queries = """
 SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
-FROM remapp_ctirradiationeventdata 
+FROM remapp_ctirradiationeventdata
 """
 
 # pandas dataframe
@@ -67,49 +70,53 @@ df['protocol'] = df['protocol'].astype(str)
 def get_accession(uid):
     uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
                                  f"FROM remapp_ctirradiationeventdata "
-                                 f"WHERE irradiation_event_uid=?",(uid,)).fetchone()[0]
+                                 f"WHERE irradiation_event_uid=?", (uid,)).fetchone()[0]
     ctdoseid = db.cursor().execute(f"SELECT general_study_module_attributes_id "
                                    f"FROM remapp_ctradiationdose "
-                                   f"WHERE id=?",(uidrow,)).fetchone()[0]
+                                   f"WHERE id=?", (uidrow,)).fetchone()[0]
     accnum = db.cursor().execute(f"SELECT accession_number "
-                                   f"FROM remapp_generalstudymoduleattr "
-                                   f"WHERE id=?",(ctdoseid,)).fetchone()[0]
+                                 f"FROM remapp_generalstudymoduleattr "
+                                 f"WHERE id=?", (ctdoseid,)).fetchone()[0]
     return accnum
 
 
 def get_examdate(uid):
     uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
                                  f"FROM remapp_ctirradiationeventdata "
-                                 f"WHERE irradiation_event_uid=?",(uid,)).fetchone()[0]
+                                 f"WHERE irradiation_event_uid=?", (uid,)).fetchone()[0]
     raddate = db.cursor().execute(f"SELECT start_of_xray_irradiation "
-                                   f"FROM remapp_ctradiationdose "
-                                   f"WHERE id=?",(uidrow,)).fetchone()[0]
+                                  f"FROM remapp_ctradiationdose "
+                                  f"WHERE id=?", (uidrow,)).fetchone()[0]
     return raddate
 
 # function that takes the uid and finds site location.
+
+
 def get_site(uid):
     uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
                                  f"FROM remapp_ctirradiationeventdata "
-                                 f"WHERE irradiation_event_uid=?",(uid,)).fetchone()[0]
+                                 f"WHERE irradiation_event_uid=?", (uid,)).fetchone()[0]
     ctdoseid = db.cursor().execute(f"SELECT general_study_module_attributes_id "
                                    f"FROM remapp_ctradiationdose "
-                                   f"WHERE id=?",(uidrow,)).fetchone()[0]
+                                   f"WHERE id=?", (uidrow,)).fetchone()[0]
     site = db.cursor().execute(f"SELECT institution_name "
-                                   f"FROM remapp_generalequipmentmoduleattr "
-                                   f"WHERE general_study_module_attributes_id=?",(ctdoseid,)).fetchone()[0]
+                               f"FROM remapp_generalequipmentmoduleattr "
+                               f"WHERE general_study_module_attributes_id=?", (ctdoseid,)).fetchone()[0]
     return site
 
 # function that takes the uid and finds station name.
+
+
 def get_station(uid):
     uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
                                  f"FROM remapp_ctirradiationeventdata "
-                                 f"WHERE irradiation_event_uid=?",(uid,)).fetchone()[0]
+                                 f"WHERE irradiation_event_uid=?", (uid,)).fetchone()[0]
     ctdoseid = db.cursor().execute(f"SELECT general_study_module_attributes_id "
                                    f"FROM remapp_ctradiationdose "
-                                   f"WHERE id=?",(uidrow,)).fetchone()[0]
+                                   f"WHERE id=?", (uidrow,)).fetchone()[0]
     station = db.cursor().execute(f"SELECT station_name "
-                                   f"FROM remapp_generalequipmentmoduleattr "
-                                   f"WHERE general_study_module_attributes_id=?",(ctdoseid,)).fetchone()[0]
+                                  f"FROM remapp_generalequipmentmoduleattr "
+                                  f"WHERE general_study_module_attributes_id=?", (ctdoseid,)).fetchone()[0]
     return station
 
 # function creates a mask dataframe of single study type.
@@ -134,6 +141,7 @@ def dose_limit(exam, limit):
             global studydate
             global siteadd
             global stationname
+            global notification_limit
             # TODO: change to physics@sanfordhealth.org
             emailname = "christopher.lahn@sanfordhealth.org"
             protocol = str(row.at["protocol"])
@@ -142,6 +150,8 @@ def dose_limit(exam, limit):
             nt.append(uid)
             ctdi = str(row.at['ctdi'])
             nt.append(ctdi)
+            notification_limit = str(limit)
+            nt.append(notification_limit)
             # calls function that matches up uid with accession # in database.
             acc = get_accession(uid)
             nt.append(acc)
@@ -173,6 +183,7 @@ def dose_limit(exam, limit):
                 send_notification()
                 wb.close()
                 continue
+
 
 # set exams we are looking for and threshold value here.
 dose_limit('cta', 150)
