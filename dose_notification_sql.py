@@ -46,7 +46,8 @@ def send_notification():
     mail.Subject = "Dose Notification Trigger"
     mail.body = ("Hello, \r\n \r\nThis is an automated message.  No reply is necessary."
                  "  \r\n \r\nAn exam was performed that exceeded our dose Notification limits.  \r\n \r\nExam: "
-                 + protocol + "\r\n \r\nUID: " + uid + "\r\n \r\nCTDI: " + ctdi)
+                 + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi + "\r\n \r\nStudy Date: " +
+                 studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
     mail.send
 
 
@@ -54,7 +55,7 @@ def send_notification():
 # selects data from database.  LIMIT will  limit results to specified number.
 queries = """
 SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
-FROM remapp_ctirradiationeventdata LIMIT 500
+FROM remapp_ctirradiationeventdata 
 """
 
 # pandas dataframe
@@ -62,14 +63,62 @@ df = pd.read_sql_query(queries, db)
 df['protocol'] = df['protocol'].astype(str)
 
 
-# TODO: write a function that takes the uid and finds exam info: acc, location, etc.
+# function that takes the uid and finds exam accession number.
+def get_accession(uid):
+    uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
+                                 f"FROM remapp_ctirradiationeventdata "
+                                 f"WHERE irradiation_event_uid=?",(uid,)).fetchone()[0]
+    ctdoseid = db.cursor().execute(f"SELECT general_study_module_attributes_id "
+                                   f"FROM remapp_ctradiationdose "
+                                   f"WHERE id=?",(uidrow,)).fetchone()[0]
+    accnum = db.cursor().execute(f"SELECT accession_number "
+                                   f"FROM remapp_generalstudymoduleattr "
+                                   f"WHERE id=?",(ctdoseid,)).fetchone()[0]
+    return accnum
 
+
+def get_examdate(uid):
+    uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
+                                 f"FROM remapp_ctirradiationeventdata "
+                                 f"WHERE irradiation_event_uid=?",(uid,)).fetchone()[0]
+    raddate = db.cursor().execute(f"SELECT start_of_xray_irradiation "
+                                   f"FROM remapp_ctradiationdose "
+                                   f"WHERE id=?",(uidrow,)).fetchone()[0]
+    return raddate
+
+# function that takes the uid and finds site location.
+def get_site(uid):
+    uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
+                                 f"FROM remapp_ctirradiationeventdata "
+                                 f"WHERE irradiation_event_uid=?",(uid,)).fetchone()[0]
+    ctdoseid = db.cursor().execute(f"SELECT general_study_module_attributes_id "
+                                   f"FROM remapp_ctradiationdose "
+                                   f"WHERE id=?",(uidrow,)).fetchone()[0]
+    site = db.cursor().execute(f"SELECT institution_name "
+                                   f"FROM remapp_generalequipmentmoduleattr "
+                                   f"WHERE general_study_module_attributes_id=?",(ctdoseid,)).fetchone()[0]
+    return site
+
+# function that takes the uid and finds station name.
+def get_station(uid):
+    uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
+                                 f"FROM remapp_ctirradiationeventdata "
+                                 f"WHERE irradiation_event_uid=?",(uid,)).fetchone()[0]
+    ctdoseid = db.cursor().execute(f"SELECT general_study_module_attributes_id "
+                                   f"FROM remapp_ctradiationdose "
+                                   f"WHERE id=?",(uidrow,)).fetchone()[0]
+    station = db.cursor().execute(f"SELECT station_name "
+                                   f"FROM remapp_generalequipmentmoduleattr "
+                                   f"WHERE general_study_module_attributes_id=?",(ctdoseid,)).fetchone()[0]
+    return station
 
 # function creates a mask dataframe of single study type.
 # looks for ctdi values above a set threshold.
 # appends outlier data to a file and emails the physics email with study data.
+
+
 def dose_limit(exam, limit):
-    df2 = df[df['protocol'].str.contains(exam, case=False)]
+    df2 = df[df['protocol'].str.lower().str.contains(exam, case=False)]
 
     for idx, row in df2.iterrows():
         if row.at['ctdi'] > limit:
@@ -81,6 +130,10 @@ def dose_limit(exam, limit):
             global protocol
             global uid
             global ctdi
+            global acc
+            global studydate
+            global siteadd
+            global stationname
             # TODO: change to physics@sanfordhealth.org
             emailname = "christopher.lahn@sanfordhealth.org"
             protocol = str(row.at["protocol"])
@@ -89,6 +142,19 @@ def dose_limit(exam, limit):
             nt.append(uid)
             ctdi = str(row.at['ctdi'])
             nt.append(ctdi)
+            # calls function that matches up uid with accession # in database.
+            acc = get_accession(uid)
+            nt.append(acc)
+            # calls function that matches up uid with beginning of radiation event (study date) in database.
+            studydate = get_examdate(uid)
+            nt.append(studydate)
+            # calls function that matches up uid with Site name in database.
+            siteadd = get_site(uid)
+            nt.append(siteadd)
+            # calls function that matches up uid with station name in database.
+            stationname = get_station(uid)
+            nt.append(stationname)
+
             # write the notifications to a file.
             # TODO move file to a permanent place
             wb = openpyxl.load_workbook(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
@@ -108,10 +174,10 @@ def dose_limit(exam, limit):
                 wb.close()
                 continue
 
-
-
-
-dose_limit('cta', 30)
-dose_limit('aaa', 30)
-dose_limit('l-spine', 30)
+# set exams we are looking for and threshold value here.
+dose_limit('cta', 150)
+dose_limit('aaa', 100)
+dose_limit('l-spine', 70)
+dose_limit('neck', 65)
+dose_limit('stone', 40)
 db.close()
