@@ -3,12 +3,22 @@ import pandas as pd
 import openpyxl
 import win32com.client as win32
 import psutil
+import os
 import py
 import subprocess
 
-# TODO: add part to script that will make a copy of databse file on my computer.
+# path for local database
+fileDb = py.path.local(r"C:\Users\clahn\Desktop\openrem.db")
+
+
+
+# make a copy of databse file on my computer.
 # This script will then perform operations on that file.
-# W:\SHARE8 Physics\Software\python\data\openrem\openrem.db
+if fileDb.isfile():
+    fileDb.remove()
+py.path.local(r'W:\SHARE8 Physics\Software\python\data\openrem\openrem.db').copy(fileDb)
+
+
 
 # Check if outlook is open.  If not, open it.
 for item in psutil.pids():
@@ -29,16 +39,8 @@ for item in psutil.pids():
             print("Outlook didn't open successfully")
 
 
-# path for local database
-fileDb = py.path.local(r"C:\Users\clahn\AppData\Local\Continuum\anaconda3"
-                       "\envs\env2.7\Lib\site-packages\openrem"
-                       "\openremproject\openrem.db")
-
-# Connect to the database. Need .strpath to work.
-db = sqlite3.connect(fileDb.strpath)
 
 # function that sends email
-
 
 def send_notification():
     outlook = win32.Dispatch('outlook.application')
@@ -49,11 +51,12 @@ def send_notification():
     mail.body = ("Hello, \r\n \r\nThis is an automated message.  No reply is necessary."
                  "  \r\n \r\nAn exam was performed that exceeded our dose Notification limits.  \r\n \r\nExam: "
                  + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi +
-                 "\r\n \r\nNotification Limit: " + notification_limit + "\r\n \r\nStudy Date: " +
+                 "\r\n \r\nAlert Limit: " + alert_limit + "\r\n \r\nStudy Date: " +
                  studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
     mail.send
 
-
+# Connect to the database. Need .strpath to work.
+db = sqlite3.connect(fileDb.strpath)
 
 # selects data from database.  LIMIT will  limit results to specified number.
 queries = """
@@ -119,6 +122,16 @@ def get_station(uid):
                                   f"WHERE general_study_module_attributes_id=?", (ctdoseid,)).fetchone()[0]
     return station
 
+
+def scanner_alert_limit(uid):
+    uidrow = db.cursor().execute(f"SELECT id "
+                                 f"FROM remapp_ctirradiationeventdata "
+                                 f"WHERE irradiation_event_uid=?", (uid,)).fetchone()[0]
+    scanalert = db.cursor().execute(f"SELECT ctdivol_notification_value "
+                                    f"FROM remapp_ctdosecheckdetails "
+                                    f"WHERE ct_irradiation_event_data_id=?", (uidrow,)).fetchone()[0]
+    return scanalert
+
 # function creates a mask dataframe of single study type.
 # looks for ctdi values above a set threshold.
 # appends outlier data to a file and emails the physics email with study data.
@@ -141,7 +154,7 @@ def dose_limit(exam, limit):
             global studydate
             global siteadd
             global stationname
-            global notification_limit
+            global alert_limit
             # TODO: change to physics@sanfordhealth.org
             emailname = "christopher.lahn@sanfordhealth.org"
             protocol = str(row.at["protocol"])
@@ -150,8 +163,10 @@ def dose_limit(exam, limit):
             nt.append(uid)
             ctdi = str(row.at['ctdi'])
             nt.append(ctdi)
-            notification_limit = str(limit)
-            nt.append(notification_limit)
+            alert_limit = str(limit)
+            nt.append(alert_limit)
+            scanalert = scanner_alert_limit(uid)
+            nt.append(scanalert)
             # calls function that matches up uid with accession # in database.
             acc = get_accession(uid)
             nt.append(acc)
@@ -164,6 +179,8 @@ def dose_limit(exam, limit):
             # calls function that matches up uid with station name in database.
             stationname = get_station(uid)
             nt.append(stationname)
+
+
 
             # write the notifications to a file.
             # TODO move file to a permanent place
