@@ -6,6 +6,7 @@ import psutil
 import os
 import py
 import subprocess
+from emailsender import *
 
 # path for local database
 fileDb = py.path.local(r"C:\Users\clahn\Desktop\openrem.db")
@@ -18,8 +19,9 @@ if fileDb.isfile():
     fileDb.remove()
 py.path.local(r'W:\SHARE8 Physics\Software\python\data\openrem\openrem.db').copy(fileDb)
 
+EmailSender().check_outlook()
 
-
+'''
 # Check if outlook is open.  If not, open it.
 for item in psutil.pids():
     for item in psutil.pids():
@@ -37,11 +39,11 @@ for item in psutil.pids():
             #os.system("C:\Program Files\Microsoft Office\Office16\Outlook.exe")
         except:
             print("Outlook didn't open successfully")
-
+'''
 
 
 # function that sends email
-
+'''
 def send_notification():
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
@@ -54,6 +56,8 @@ def send_notification():
                  "\r\n \r\nAlert Limit: " + alert_limit + "\r\n \r\nStudy Date: " +
                  studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
     mail.send
+'''
+
 
 # Connect to the database. Need .strpath to work.
 db = sqlite3.connect(fileDb.strpath)
@@ -197,7 +201,13 @@ def dose_limit(exam, limit):
                 wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
                 wb.close()
                 # calls the function that sends the email with these variables data.
-                send_notification()
+                # send_notification()
+                EmailSender().send_email(emailname, "Dose Notification Trigger",
+                         "Hello, \r\n \r\nThis is an automated message.  No reply is necessary."
+                 "  \r\n \r\nAn exam was performed that exceeded our dose Notification limits.  \r\n \r\nExam: "
+                 + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi +
+                 "\r\n \r\nAlert Limit: " + alert_limit + "\r\n \r\nStudy Date: " +
+                 studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
                 wb.close()
                 continue
 
