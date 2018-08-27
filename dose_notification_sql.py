@@ -6,10 +6,10 @@ import psutil
 import os
 import py
 import subprocess
+from emailsender import *
 
 # path for local database
 fileDb = py.path.local(r"C:\Users\clahn\Desktop\openrem.db")
-
 
 
 # make a copy of databse file on my computer.
@@ -18,42 +18,8 @@ if fileDb.isfile():
     fileDb.remove()
 py.path.local(r'W:\SHARE8 Physics\Software\python\data\openrem\openrem.db').copy(fileDb)
 
-
-
-# Check if outlook is open.  If not, open it.
-for item in psutil.pids():
-    for item in psutil.pids():
-        p = psutil.Process(item)
-        flag = (p.name() == "OUTLOOK.EXE")
-        if flag:
-            break
-
-    if flag:
-        pass
-    else:
-        try:
-            os.startfile("outlook")
-            #subprocess.call(['C:\Program Files\Microsoft Office\Office16\Outlook.exe'])
-            #os.system("C:\Program Files\Microsoft Office\Office16\Outlook.exe")
-        except:
-            print("Outlook didn't open successfully")
-
-
-
-# function that sends email
-
-def send_notification():
-    outlook = win32.Dispatch('outlook.application')
-    mail = outlook.CreateItem(0)
-    # mail.To = getname
-    mail.To = emailname
-    mail.Subject = "Dose Notification Trigger"
-    mail.body = ("Hello, \r\n \r\nThis is an automated message.  No reply is necessary."
-                 "  \r\n \r\nAn exam was performed that exceeded our dose Notification limits.  \r\n \r\nExam: "
-                 + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi +
-                 "\r\n \r\nAlert Limit: " + alert_limit + "\r\n \r\nStudy Date: " +
-                 studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
-    mail.send
+# Checks if outlook is open.  If not, opens it.
+EmailSender().check_outlook()
 
 # Connect to the database. Need .strpath to work.
 db = sqlite3.connect(fileDb.strpath)
@@ -180,8 +146,6 @@ def dose_limit(exam, limit):
             stationname = get_station(uid)
             nt.append(stationname)
 
-
-
             # write the notifications to a file.
             # TODO move file to a permanent place
             wb = openpyxl.load_workbook(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
@@ -196,8 +160,13 @@ def dose_limit(exam, limit):
                 sheet.append(nt)
                 wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
                 wb.close()
-                # calls the function that sends the email with these variables data.
-                send_notification()
+                # calls the module that sends the email with these variables data.
+                EmailSender().send_email(emailname, "Dose Notification Trigger",
+                                         "Hello, \r\n \r\nThis is an automated message.  No reply is necessary."
+                                         "  \r\n \r\nAn exam was performed that exceeded our dose Notification limits.  \r\n \r\nExam: "
+                                         + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi +
+                                         "\r\n \r\nAlert Limit: " + alert_limit + "\r\n \r\nStudy Date: " +
+                                         studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
                 wb.close()
                 continue
 
