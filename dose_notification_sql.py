@@ -170,11 +170,31 @@ def dose_limit(exam, limit):
                 wb.close()
                 continue
 
+"""
+AAPM Recs
+https://www.aapm.org/pubs/CTProtocols/documents/NotificationLevelsStatement.pdf
+
+Adult Head: 80 mGy
+Adult Torso: 50 mGy
+Ped Head <2 years: 50 mGy
+Ped Head 2-5 years: 60 mGy
+Ped Torso < 10 years (16cm phantom): 25 mGy
+Ped Torso < 10 years (32cm phantom): 10 mGy
+Brain Perfusion: 600 mGy
+Cardiac gated spiral: 150 mGy
+Cardiac gated sequential: 50 mGy
+"""
+
+
 
 # set exams we are looking for and threshold value here.
-dose_limit('cta', 150)
-dose_limit('aaa', 100)
-dose_limit('l-spine', 70)
-dose_limit('neck', 65)
-dose_limit('stone', 40)
+dose_limit('head', 80)
+dose_limit('ped head', 80)
+dose_limit('peds head', 50)
+dose_limit('abd', 50)
+dose_limit('peds abd', 25)
+dose_limit('peds a/p', 25)
+dose_limit('l-spine', 50)
+dose_limit('neck', 50)
+dose_limit('stone', 50)
 db.close()
