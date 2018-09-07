@@ -110,17 +110,6 @@ def dose_limit(exam, limit):
         if row.at['ctdi'] > limit:
             # list for adding data to spreadsheet for tracking notifications.
             nt = []
-            # global allowed for variables below to be called in outlook functions.
-            # there is probably a better way to do this but this is all I know how to do right now.
-            global emailname
-            global protocol
-            global uid
-            global ctdi
-            global acc
-            global studydate
-            global siteadd
-            global stationname
-            global alert_limit
             # TODO: change to physics@sanfordhealth.org
             emailname = "christopher.lahn@sanfordhealth.org"
             protocol = str(row.at["protocol"])
@@ -173,8 +162,8 @@ def dose_limit(exam, limit):
 
 # set exams we are looking for and threshold value here.
 dose_limit('cta', 150)
-dose_limit('aaa', 100)
-dose_limit('l-spine', 70)
-dose_limit('neck', 65)
-dose_limit('stone', 40)
+#dose_limit('aaa', 100)
+#dose_limit('l-spine', 70)
+#dose_limit('neck', 65)
+#dose_limit('stone', 40)
 db.close()
