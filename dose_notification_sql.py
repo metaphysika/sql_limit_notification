@@ -8,6 +8,14 @@ import py
 import subprocess
 from emailsender import *
 
+'''
+
+TODO:  confine to specic dates so when it queries the database, it doesn't pull the full database
+do this in the call to the database in building your dataframe.
+'''
+
+is_email = True
+
 # path for local database
 fileDb = py.path.local(r"C:\Users\clahn\Desktop\openrem.db")
 
@@ -112,15 +120,15 @@ def dose_limit(exam, limit):
             nt = []
             # global allowed for variables below to be called in outlook functions.
             # there is probably a better way to do this but this is all I know how to do right now.
-            global emailname
-            global protocol
-            global uid
-            global ctdi
-            global acc
-            global studydate
-            global siteadd
-            global stationname
-            global alert_limit
+            # global emailname
+            # global protocol
+            # global uid
+            # global ctdi
+            # global acc
+            # global studydate
+            # global siteadd
+            # global stationname
+            # global alert_limit
             # TODO: change to physics@sanfordhealth.org
             emailname = "christopher.lahn@sanfordhealth.org"
             protocol = str(row.at["protocol"])
@@ -161,40 +169,24 @@ def dose_limit(exam, limit):
                 wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
                 wb.close()
                 # calls the module that sends the email with these variables data.
-                EmailSender().send_email(emailname, "Dose Notification Trigger",
-                                         "Hello, \r\n \r\nThis is an automated message.  No reply is necessary."
-                                         "  \r\n \r\nAn exam was performed that exceeded our dose Notification limits.  \r\n \r\nExam: "
-                                         + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi +
-                                         "\r\n \r\nAlert Limit: " + alert_limit + "\r\n \r\nStudy Date: " +
-                                         studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
+                # if is_email is true, the email will get sent.  If false, it will not send email.
+                if is_email:
+                    EmailSender().send_email(emailname, "Dose Notification Trigger",
+                                             "Hello, \r\n \r\nThis is an automated message.  No reply is necessary."
+                                             "  \r\n \r\nAn exam was performed that exceeded our dose Notification limits.  \r\n \r\nExam: "
+                                             + protocol + "\r\n \r\nAccession #: " + acc + "\r\n \r\nCTDI: " + ctdi +
+                                             "\r\n \r\nAlert Limit: " + alert_limit + "\r\n \r\nStudy Date: " +
+                                             studydate + "\r\n \r\nSite: " + siteadd + "\r\n \r\nStation name: " + stationname)
+                else:
+                    pass
                 wb.close()
                 continue
 
-"""
-AAPM Recs
-https://www.aapm.org/pubs/CTProtocols/documents/NotificationLevelsStatement.pdf
-
-Adult Head: 80 mGy
-Adult Torso: 50 mGy
-Ped Head <2 years: 50 mGy
-Ped Head 2-5 years: 60 mGy
-Ped Torso < 10 years (16cm phantom): 25 mGy
-Ped Torso < 10 years (32cm phantom): 10 mGy
-Brain Perfusion: 600 mGy
-Cardiac gated spiral: 150 mGy
-Cardiac gated sequential: 50 mGy
-"""
-
-
 
 # set exams we are looking for and threshold value here.
-dose_limit('head', 80)
-dose_limit('ped head', 80)
-dose_limit('peds head', 50)
-dose_limit('abd', 50)
-dose_limit('peds abd', 25)
-dose_limit('peds a/p', 25)
-dose_limit('l-spine', 50)
-dose_limit('neck', 50)
-dose_limit('stone', 50)
+dose_limit('cta', 150)
+# dose_limit('aaa', 100)
+# dose_limit('l-spine', 70)
+# dose_limit('neck', 65)
+# dose_limit('stone', 40)
 db.close()
