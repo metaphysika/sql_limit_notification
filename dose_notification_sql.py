@@ -6,15 +6,11 @@ import psutil
 import os
 import py
 import subprocess
+import datetime
 from emailsender import *
 
-'''
-
-TODO:  confine to specic dates so when it queries the database, it doesn't pull the full database
-do this in the call to the database in building your dataframe.
-'''
-
-is_email = True
+# set to True to send emails.  False to not send emails.
+is_email = False
 
 # path for local database
 fileDb = py.path.local(r"C:\Users\clahn\Desktop\openrem.db")
@@ -35,15 +31,28 @@ db = sqlite3.connect(fileDb.strpath)
 # selects data from database.  LIMIT will  limit results to specified number.
 queries = """
 SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
-FROM remapp_ctirradiationeventdata
+FROM remapp_ctirradiationeventdata ;
 """
+
+'''
+TODO:  confine to specic dates so when it queries the database, it doesn't pull the full database
+do this in the call to the database in building your dataframe.  Can't get it to work.  Is it because multiple instances of remapp_ctirradiationeventdata.ct_radiation_dose_id key?
+
+# INNER JOIN remapp_ctradiationdose on remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id  WHERE remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-100 week')
+
+# , remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-100 week')
+'''
+
 
 # pandas dataframe
 df = pd.read_sql_query(queries, db)
 df['protocol'] = df['protocol'].astype(str)
 
+print(df.head())
 
 # function that takes the uid and finds exam accession number.
+
+
 def get_accession(uid):
     uidrow = db.cursor().execute(f"SELECT ct_radiation_dose_id "
                                  f"FROM remapp_ctirradiationeventdata "
@@ -188,5 +197,5 @@ dose_limit('cta', 150)
 # dose_limit('aaa', 100)
 # dose_limit('l-spine', 70)
 # dose_limit('neck', 65)
-# dose_limit('stone', 40)
+# dose_limit('stone', 10)
 db.close()
