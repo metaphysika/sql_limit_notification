@@ -38,7 +38,10 @@ FROM remapp_ctirradiationeventdata ;
 TODO:  confine to specic dates so when it queries the database, it doesn't pull the full database
 do this in the call to the database in building your dataframe.  Can't get it to work.  Is it because multiple instances of remapp_ctirradiationeventdata.ct_radiation_dose_id key?
 
-# INNER JOIN remapp_ctradiationdose on remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id  WHERE remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-100 week')
+Try this new thing.  adding specific reference to tabl.column in the select portion. https://stackoverflow.com/questions/7478645/sqlite3-select-from-multiple-tables-where-stuff
+
+# queries = """SELECT remapp_ctirradiationeventdata.acquisition_protocol as protocol, remapp_ctirradiationeventdata.mean_ctdivol as ctdi, remapp_ctirradiationeventdata.irradiation_event_uid as uid, remapp_ctradiationdose.start_of_xray_irradiation as date,
+FROM remapp_ctirradiationeventdata INNER JOIN remapp_ctradiationdose on remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id  WHERE remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-100 week')"""
 
 # , remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-100 week')
 '''
