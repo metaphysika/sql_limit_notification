@@ -29,29 +29,40 @@ EmailSender().check_outlook()
 db = sqlite3.connect(fileDb.strpath)
 
 # selects data from database.  LIMIT will  limit results to specified number.
-queries = """
-SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
-FROM remapp_ctirradiationeventdata ;
-"""
+# queries = ("""SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid, start_of_xray_irradiation as day FROM remapp_ctirradiationeventdata, remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-300 days') LIMIT 10""")
+
+# Original, non-filter version.
+queries = ('''SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
+FROM remapp_ctirradiationeventdata ;''')
 
 '''
-TODO:  confine to specic dates so when it queries the database, it doesn't pull the full database
-do this in the call to the database in building your dataframe.  Can't get it to work.  Is it because multiple instances of remapp_ctirradiationeventdata.ct_radiation_dose_id key?
+# Notes on adding specific reference to tabl.column in the select portion.
+# https://stackoverflow.com/questions/7478645/sqlite3-select-from-multiple-tables-where-stuff
 
-Try this new thing.  adding specific reference to tabl.column in the select portion. https://stackoverflow.com/questions/7478645/sqlite3-select-from-multiple-tables-where-stuff
 
-# queries = """SELECT remapp_ctirradiationeventdata.acquisition_protocol as protocol, remapp_ctirradiationeventdata.mean_ctdivol as ctdi, remapp_ctirradiationeventdata.irradiation_event_uid as uid, remapp_ctradiationdose.start_of_xray_irradiation as date,
-FROM remapp_ctirradiationeventdata INNER JOIN remapp_ctradiationdose on remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id  WHERE remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-100 week')"""
+# Original, non-filter version.
+SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
+FROM remapp_ctirradiationeventdata ;
 
-# , remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-100 week')
+# Filtered version. This works!
+queries = ("""SELECT remapp_ctirradiationeventdata.acquisition_protocol as protocol, remapp_ctirradiationeventdata.mean_ctdivol as ctdi, remapp_ctirradiationeventdata.irradiation_event_uid as uid, remapp_ctradiationdose.start_of_xray_irradiation as day FROM remapp_ctirradiationeventdata INNER JOIN remapp_ctradiationdose on remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id  WHERE remapp_ctradiationdose.start_of_xray_irradiation > date('now', '-300 days') LIMIT 10""")
+
+# This works too.  Shortened version where I don't call the specific table along with the column.
+# ex. remapp_ctirradiationeventdata.acquisition_protocol as protocol vs. acquisition_protocol as protocol
+queries = ("""SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid, start_of_xray_irradiation as day FROM remapp_ctirradiationeventdata INNER JOIN remapp_ctradiationdose on remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id  WHERE remapp_ctradiationdose.start_of_xray_irradiation > date('now', '-300 days') LIMIT 10""")
+
+
+# This works as an alternative to inner join.
+queries = ("""SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid, start_of_xray_irradiation as day FROM remapp_ctirradiationeventdata, remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-300 days') LIMIT 10""")
 '''
 
 
 # pandas dataframe
+pd.set_option('display.max_columns', 5)
 df = pd.read_sql_query(queries, db)
 df['protocol'] = df['protocol'].astype(str)
 
-print(df.head())
+print(df.head(10))
 
 # function that takes the uid and finds exam accession number.
 
@@ -168,7 +179,7 @@ def dose_limit(exam, limit):
 
             # write the notifications to a file.
             # TODO move file to a permanent place
-            wb = openpyxl.load_workbook(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
+            wb = openpyxl.load_workbook(r'W:\SHARE8 Physics\Software\python\scripts\clahn\Dose Notification OpenRem\sql dose limit notifications.xlsx')
             sheet = wb['Sheet1']
             # check if UID is already in file.  If so, pass.  If not, append and send notification.
             oldUid = []
@@ -178,7 +189,7 @@ def dose_limit(exam, limit):
                 pass
             else:
                 sheet.append(nt)
-                wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\sql dose limit notifications.xlsx')
+                wb.save(r'W:\SHARE8 Physics\Software\python\scripts\clahn\Dose Notification OpenRem\sql dose limit notifications.xlsx')
                 wb.close()
                 # calls the module that sends the email with these variables data.
                 # if is_email is true, the email will get sent.  If false, it will not send email.
@@ -196,7 +207,7 @@ def dose_limit(exam, limit):
 
 
 # set exams we are looking for and threshold value here.
-dose_limit('cta', 150)
+dose_limit('cta', 11)
 # dose_limit('aaa', 100)
 # dose_limit('l-spine', 70)
 # dose_limit('neck', 65)
