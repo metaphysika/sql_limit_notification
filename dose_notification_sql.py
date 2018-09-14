@@ -29,7 +29,7 @@ EmailSender().check_outlook()
 db = sqlite3.connect(fileDb.strpath)
 
 # selects data from database.  LIMIT will  limit results to specified number.
-# queries = ("""SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid, start_of_xray_irradiation as day FROM remapp_ctirradiationeventdata, remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-300 days') LIMIT 10""")
+# queries = ("""SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid, start_of_xray_irradiation as day FROM remapp_ctirradiationeventdata, remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-300 days')""")
 
 # Original, non-filter version.
 queries = ('''SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
@@ -133,10 +133,15 @@ def scanner_alert_limit(uid):
 # looks for ctdi values above a set threshold.
 # appends outlier data to a file and emails the physics email with study data.
 
+# pass a list of terms want search to contain
+
 
 def dose_limit(exam, limit):
-    df2 = df[df['protocol'].str.lower().str.contains(exam, case=False)]
-
+    df2 = df
+    for s in exam:
+        df2 = df2[df2['protocol'].str.lower().str.contains(s, case=False)]
+        # Maybe add an exit code for exams that str.contains('CTA').  Call separate function that looks for CTA exams?
+        # pass
     for idx, row in df2.iterrows():
         if row.at['ctdi'] > limit:
             # list for adding data to spreadsheet for tracking notifications.
@@ -206,10 +211,38 @@ def dose_limit(exam, limit):
                 continue
 
 
+'''
+AAPM Values https://www.aapm.org/pubs/CTProtocols/documents/NotificationLevelsStatement.pdf
+
+Adult Head 80
+Adult Torso 50
+
+Pediatric Head
+<2 years old 50
+2 – 5 years old 60
+
+Pediatric Torso
+<10 years old (16-cm phantom) 25
+<10 years old (32-cm phantom) 10
+
+Brain Perfusion 600
+
+Cardiac
+Retrospectively gated (spiral) 150
+Prospectively gated (sequential) 50
+'''
+
+# Call separate function that looks for CTA exams?
+# dose_limit_cta(['cta', 'head'], 100)
+# dose_limit_cta(['cta', 'abd'], 100)
+
 # set exams we are looking for and threshold value here.
-dose_limit('cta', 11)
-# dose_limit('aaa', 100)
-# dose_limit('l-spine', 70)
-# dose_limit('neck', 65)
-# dose_limit('stone', 10)
+dose_limit(['head'], 80)
+dose_limit(['brain'], 80)
+dose_limit(['abd'], 50)
+dose_limit(['stone'], 50)
+dose_limit(['peds', 'abd'], 25)
+dose_limit(['ped', 'head', '0-'], 50)
+dose_limit(['ped', 'head'], 60)
+dose_limit(['peds', 'head'], 60)
 db.close()
