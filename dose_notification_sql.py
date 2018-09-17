@@ -1,16 +1,11 @@
 import sqlite3
 import pandas as pd
 import openpyxl
-import win32com.client as win32
-import psutil
-import os
 import py
-import subprocess
-import datetime
 from emailsender import *
 
 # set to True to send emails.  False to not send emails.
-is_email = False
+is_email = True
 
 # path for local database
 fileDb = py.path.local(r"C:\Users\clahn\Desktop\openrem.db")
@@ -29,11 +24,11 @@ EmailSender().check_outlook()
 db = sqlite3.connect(fileDb.strpath)
 
 # selects data from database.  LIMIT will  limit results to specified number.
-# queries = ("""SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid, start_of_xray_irradiation as day FROM remapp_ctirradiationeventdata, remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-300 days')""")
+queries = ("""SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid, start_of_xray_irradiation as day FROM remapp_ctirradiationeventdata, remapp_ctradiationdose WHERE remapp_ctirradiationeventdata.ct_radiation_dose_id = remapp_ctradiationdose.id AND remapp_ctradiationdose.start_of_xray_irradiation > datetime('now', '-30 days')""")
 
 # Original, non-filter version.
-queries = ('''SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
-FROM remapp_ctirradiationeventdata ;''')
+# queries = ('''SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irradiation_event_uid as uid
+# FROM remapp_ctirradiationeventdata ;''')
 
 '''
 # Notes on adding specific reference to tabl.column in the select portion.
@@ -58,11 +53,11 @@ queries = ("""SELECT acquisition_protocol as protocol, mean_ctdivol as ctdi, irr
 
 
 # pandas dataframe
-pd.set_option('display.max_columns', 5)
+# pd.set_option('display.max_columns', 5)
 df = pd.read_sql_query(queries, db)
 df['protocol'] = df['protocol'].astype(str)
 
-print(df.head(10))
+# print(df.head(10))
 
 # function that takes the uid and finds exam accession number.
 
@@ -133,19 +128,18 @@ def scanner_alert_limit(uid):
 # looks for ctdi values above a set threshold.
 # appends outlier data to a file and emails the physics email with study data.
 
-# pass a list of terms want search to contain
-
 
 def dose_limit(exam, limit):
-    df2 = df
+    # could filter dataframe to exclude 'CTA'.  Do we want to do this for all CTA exams?  Or, just CTA head?
+    # Then, create a separate function to deal with CTA exams?
+    df2 = df  # [~df['protocol'].str.contains('CTA', case=False)]
     for s in exam:
         df2 = df2[df2['protocol'].str.lower().str.contains(s, case=False)]
-        # Maybe add an exit code for exams that str.contains('CTA').  Call separate function that looks for CTA exams?
-        # pass
     for idx, row in df2.iterrows():
         if row.at['ctdi'] > limit:
             # list for adding data to spreadsheet for tracking notifications.
             nt = []
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
             # global allowed for variables below to be called in outlook functions.
@@ -160,8 +154,10 @@ def dose_limit(exam, limit):
             # global stationname
             # global alert_limit
 >>>>>>> home_test
+=======
+>>>>>>> home_test
             # TODO: change to physics@sanfordhealth.org
-            emailname = "christopher.lahn@sanfordhealth.org"
+            emailname = "christopher.lahn@sanfordhealth.org; physics@sanfordhealth.org"
             protocol = str(row.at["protocol"])
             nt.append(protocol)
             uid = str(row.at['uid'])
@@ -254,6 +250,9 @@ dose_limit(['stone'], 50)
 dose_limit(['peds', 'abd'], 25)
 dose_limit(['ped', 'head', '0-'], 50)
 dose_limit(['ped', 'head'], 60)
+<<<<<<< HEAD
 dose_limit(['peds', 'head'], 60)
+>>>>>>> home_test
+=======
 >>>>>>> home_test
 db.close()
