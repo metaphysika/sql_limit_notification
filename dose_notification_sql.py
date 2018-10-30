@@ -15,7 +15,7 @@ fileDb = py.path.local(r"C:\Users\clahn\Desktop\openrem.db")
 # This script will then perform operations on that file.
 if fileDb.isfile():
     fileDb.remove()
-py.path.local(r'W:\SHARE8 Physics\Software\python\data\openrem\openrem.db').copy(fileDb)
+py.path.local(r'W:\SHARE8 Physics\Software\python\data\openrem\openrem081.db').copy(fileDb)
 
 # Checks if outlook is open.  If not, opens it.
 EmailSender().check_outlook()
